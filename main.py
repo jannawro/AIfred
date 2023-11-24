@@ -1,25 +1,22 @@
-import os
+from os import getenv
+from logging import getLevelNamesMapping
 
-import discord
 from dotenv import find_dotenv, load_dotenv
 
 from libs.bot.bot import Bot
+from libs.bot.intents import default_intents
 
 
 def main():
     load_dotenv(find_dotenv())
 
-    intents = discord.Intents.default()
-    intents.message_content = True
-    intents.reactions = True
-
     bot = Bot(
-        intents=intents
+        intents=default_intents()
     )
 
     bot.run(
-        token=os.getenv("DISCORD_TOKEN", ""),
-        log_level=10 # DEBUG
+        token=getenv("DISCORD_TOKEN", ""),
+        log_level=getLevelNamesMapping()[getenv("LOGLEVEL", "INFO").upper()]
     )
 
 

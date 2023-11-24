@@ -1,2 +1,5 @@
+os
+logging
 python-dotenv==1.0.0
 discord==2.3.2
+langchain==0.0.340
