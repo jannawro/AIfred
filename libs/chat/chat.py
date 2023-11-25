@@ -1,4 +1,0 @@
-
-
-class Chat(object):
-    pass

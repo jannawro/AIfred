@@ -1,4 +1,5 @@
 import discord
+from libs.chat import Chat
 
 heart_emoji = discord.PartialEmoji(name="❤️")
 sparkling_heart_emoji = discord.PartialEmoji(name="💖")
@@ -7,8 +8,9 @@ note_emoji = discord.PartialEmoji(name="📝")
 memory_emoji = discord.PartialEmoji(name="🧠")
 
 class Bot(discord.Client):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, chat: Chat, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.chat = chat
         self.message_channel = None
 
     async def on_message(self, message: discord.Message):
@@ -19,8 +21,9 @@ class Bot(discord.Client):
         if message.author == self.user:
             return
 
-        if message.content.startswith('$hello'):
-            await message.reply("Hey!", mention_author=True)
+        # chat_response = await self.chat.message(message.content)
+        chat_response = await self.chat.test(input=message.content)
+        await message.reply(chat_response, mention_author=True)
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         msg = None
