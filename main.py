@@ -1,17 +1,16 @@
 from os import getenv
 from logging import getLevelName
 
-from dotenv import find_dotenv, load_dotenv
-
-from libs.bot import Bot
-from libs.intents import default_intents
-from libs.chat import Chat
+from core.bot import Bot
+from core.intents import default_intents
+from core.chat import Chat
+from chains.router_chain import prompt_router_chain
 
 
 def main():
-    load_dotenv(find_dotenv())
+    main_chain = prompt_router_chain
 
-    chat = Chat()
+    chat = Chat(main_chain=main_chain)
 
     bot = Bot(
         intents=default_intents(),
