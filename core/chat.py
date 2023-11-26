@@ -11,9 +11,6 @@ from langchain.schema.runnable import RunnableSerializable
 class Chat(object):
     def __init__(self, main_chain: RunnableSerializable):
         # set langchain globals
-        set_llm_cache(InMemoryCache())
-        set_debug(True)
-        set_verbose(True)
 
         self.main_chain = main_chain
 

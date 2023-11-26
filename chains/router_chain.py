@@ -1,3 +1,5 @@
+from langchain.llms import OpenAI
+from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import (
     load_prompt,
@@ -10,15 +12,24 @@ from chains.query_chain import fake_query_chain
 from chains.general_chain import general_chain
 
 categorizer_prompt = load_prompt("./prompts/categorizer.yaml")
-categorizer_chain = (
-    PromptTemplate.from_template(categorizer_prompt.format(user_input="{user_input}"))
-    | ChatOpenAI(
+# categorizer_chain = (
+#     PromptTemplate.from_template(categorizer_prompt.format(user_input="{user_input}"))
+#     | ChatOpenAI(
+#         model="text-davinci-003",
+#         cache=True,
+#         temperature=0.0,
+#         verbose=True,
+#     )
+#     | StrOutputParser()
+# )
+categorizer_chain = LLMChain(
+    llm=OpenAI(
         model="gpt-3.5-turbo",
         cache=True,
-        temperature=0.0,
-        verbose=True,
-    )
-    | StrOutputParser()
+        tempratur=0.0,
+        max_tokens=1,
+    ),
+    prompt=PromptTemplate.from_template(categorizer_prompt.format(user_input="{user_input}"))
 )
 
 def category_router(x):
