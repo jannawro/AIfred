@@ -4,26 +4,31 @@ from langchain.cache import InMemoryCache
 from langchain.chains import LLMChain
 from datetime import timedelta, datetime, timezone
 from langchain.globals import set_llm_cache
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import CombinedMemory, ConversationBufferMemory, ConversationBufferWindowMemory
 from chains.general_chain import general_chain
-
-# TODO: combine the chat and bot classes into a single chatbot class 
-# TODO: set chat memory expiration to 15-20 minutes
 
 class Chatbot(Client):
     # def __init__(self, conversation_chain: LLMChain, conversation_ttl=20, *, intents: Intents, **options: Any) -> None:
-    def __init__(self, conversation_ttl=20, *, intents: Intents, **options: Any) -> None:
+    def __init__(self, intents: Intents, conversation_ttl=20, **options: Any) -> None:
         super().__init__(intents=intents, **options)
 
         self.message_channel = None
         self.last_chatbot_message = None
 
         # self.conversation_chain = conversation_chain
-        self.conversation_ttl = conversation_ttl
-        self.conversation_memory = None
-        self.conversation_memory_key = "conversation_history"
-        set_llm_cache(InMemoryCache())
 
+        # init llm cache
+        self.llm_cache = InMemoryCache()
+        set_llm_cache(self.llm_cache)
+
+        # conversation ttl
+        self.conversation_ttl = conversation_ttl
+
+        # init conversation memory
+        recent_messages = ConversationBufferWindowMemory()
+        self.conversation_memory = CombinedMemory(memories=[
+            recent_messages,
+        ])
 
     async def on_message(self, message: Message) -> None:
 
@@ -37,7 +42,7 @@ class Chatbot(Client):
             self.message_channel = await message.author.create_dm()
 
         # time between now and the last message
-        since_last_message = timedelta(minutes=self.conversation_ttl * 2)
+        since_last_message = timedelta(minutes=self.conversation_ttl * 2) ## this is a dummy value, it's not really used at any point
         if self.last_chatbot_message:
             since_last_message = datetime.now(timezone.utc) - self.last_chatbot_message.created_at
 

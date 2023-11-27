@@ -26,7 +26,7 @@ categorizer_chain = LLMChain(
     llm=OpenAI(
         model="gpt-3.5-turbo",
         cache=True,
-        tempratur=0.0,
+        temprature=0.0,
         max_tokens=1,
     ),
     prompt=PromptTemplate.from_template(categorizer_prompt.format(user_input="{user_input}"))
