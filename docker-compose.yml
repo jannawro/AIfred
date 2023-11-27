@@ -1,3 +1,9 @@
 services:
   AIfred:
     build: .
+  qdrant:
+    image: qdrant/qdrant:1.6.1
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./.data/qdrant:/qdrant/storage
