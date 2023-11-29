@@ -12,13 +12,14 @@ def main():
     set_verbose(True)
 
     chatbot = Chatbot(
-        intents=default_intents()
+        intents=default_intents(), qdrant_url="localhost", human_prefix="Janek"
     )
 
     chatbot.run(
         token=getenv("DISCORD_TOKEN", ""),
-        log_level=getLevelName(getenv("LOGLEVEL", "INFO").upper())
+        log_level=getLevelName(getenv("LOGLEVEL", "INFO").upper()),
     )
+
 
 if __name__ == "__main__":
     main()

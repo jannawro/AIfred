@@ -6,3 +6,5 @@ envs:
 	@while read -r line; do \
 		echo 'export' "$$line"; \
 	done < ./.env
+format:
+	python -m black ./

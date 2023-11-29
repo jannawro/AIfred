@@ -1,6 +1,6 @@
 services:
-  AIfred:
-    build: .
+  # AIfred:
+  #   build: .
   qdrant:
     image: qdrant/qdrant:1.6.1
     ports:
