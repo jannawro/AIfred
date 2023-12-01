@@ -118,6 +118,11 @@ class Chatbot(Client):
             }
         )
 
+        relevant_documents = self.doc_store.max_marginal_relevance_search(
+            query=message.content,
+            filter=
+        )
+
         message_response = await self.conversation_chain.ainvoke(
             {
                 "user_input": message.content,
