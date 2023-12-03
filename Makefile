@@ -1,5 +1,3 @@
-dep:
-	pip-compile > requirements.txt
 run:
 	docker-compose --env-file=.env up -d
 envs:
@@ -8,3 +6,5 @@ envs:
 	done < ./.env
 format:
 	python -m black ./
+venv:
+	ln -s $$(poetry env info -p) .venv

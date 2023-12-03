@@ -1,3 +1,4 @@
+from typing import List
 from langchain.chains import LLMChain
 from langchain.chat_models.openai import ChatOpenAI
 from langchain.prompts.chat import (
@@ -5,6 +6,7 @@ from langchain.prompts.chat import (
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
+from langchain_core.pydantic_v1 import BaseModel
 
 
 def memory_categorizer_chain() -> LLMChain:
@@ -20,3 +22,12 @@ def memory_categorizer_chain() -> LLMChain:
     return LLMChain(
         llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=256), prompt=prompt
     )
+
+
+class MemoryCategory(BaseModel):
+    key: str
+    query: str
+
+
+class MemoryCategoryList(BaseModel):
+    categories: List[MemoryCategory]

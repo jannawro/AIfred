@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "aifred"
+version = "0.1.0"
+description = "my AI discord-bot assistant"
+authors = ["jannawro <jan.nawrocki06@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+discord = "^2.3.2"
+langchain = "^0.0.344"
+openai = "^1.3.7"
+qdrant-client = "^1.6.9"
+tiktoken = "^0.5.1"
+black = "^23.11.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
