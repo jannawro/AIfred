@@ -12,7 +12,8 @@ def main():
     set_verbose(True)
 
     chatbot = Chatbot(
-        intents=default_intents(), qdrant_url="localhost", human_prefix="Janek"
+        intents=default_intents(),
+        qdrant_url=getenv("QDRANT_URL", "localhost")
     )
 
     chatbot.run(
