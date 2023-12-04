@@ -6,9 +6,9 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
 )
 from langchain.schema.runnable import RunnableLambda
-from chains.action_chain import fake_action_chain
-from chains.query_chain import fake_query_chain
-from chains.general_chain import general_chain
+from chains.action import fake_action_chain
+from chains.query import fake_query_chain
+from chains.general import general_chain
 
 
 def categorizer_chain() -> LLMChain:

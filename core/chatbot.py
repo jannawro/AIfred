@@ -15,8 +15,8 @@ from langchain.vectorstores.qdrant import Qdrant
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from qdrant_client import QdrantClient
-from chains.general_chain import general_chain
-from chains.memory_categorizer_chain import MemoryCategoryList, memory_categorizer_chain
+from chains.general import general_chain
+from chains.memory import MemoryCategoryList, input_to_memory_categories
 
 
 # TODO: add logging
@@ -113,7 +113,7 @@ class Chatbot(Client):
 
     def get_memory_categories(self, message: Message, date: str) -> MemoryCategoryList:
         response = (
-            memory_categorizer_chain()
+            input_to_memory_categories()
             .invoke({"user_input": message.content, "date": date})
             .get("output", "")
         )
