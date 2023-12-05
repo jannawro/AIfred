@@ -1,3 +1,4 @@
+from uuid import uuid4
 from discord import Client, DMChannel, Intents, Message
 from typing import Any, List
 from pathlib import Path
@@ -14,9 +15,10 @@ from langchain.memory import (
 from langchain.vectorstores.qdrant import Qdrant
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
+from langchain_core.prompts.chat import BasePromptTemplate, PromptTemplate
 from qdrant_client import QdrantClient
 from chains.general import general_chain
-from chains.memory import MemoryCategoryList, input_to_memory_categories
+from chains.memory import MemoryCategoryList, input_to_memory_categories, input_to_memory_key
 
 
 # TODO: add logging
@@ -66,20 +68,24 @@ class Chatbot(Client):
             llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0),
             input_key="user_input",
         )
-        self.entities_memory = ConversationEntityMemory(
+        self.subjects_memory = ConversationEntityMemory(
             ai_prefix=ai_prefix,
             human_prefix=self.human_prefix,
             llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0),
             k=2,
             input_key="user_input",
-            chat_history_key="entities",
+            chat_history_key="subjects",
+            entity_summarization_prompt=PromptTemplate.from_file(
+                template_file="./prompts/modified_entity_summarization.py",
+                input_variables=["entity", "summary", "history", "input"]
+            )
         )
 
         self.chatbot_memory = CombinedMemory(
             memories=[
                 self.recent_messages_memory,
                 self.conversation_summary_memory,
-                self.entities_memory,
+                self.subjects_memory,
             ]
         )
 
@@ -92,7 +98,7 @@ class Chatbot(Client):
             self.message_channel = await message.author.create_dm()
         return
 
-    async def handle_memory(self) -> None:
+    async def handle_memory(self, date) -> None:
         # time between now and the last message
         since_last_message = timedelta()
         if self.last_chatbot_message:
@@ -103,14 +109,14 @@ class Chatbot(Client):
         # flush conversation memory if last message is older than conversation TTL
         if since_last_message >= timedelta(minutes=self.conversation_ttl):
             # TODO: handle transitioning old conversation memory into long-term memory. Should be async.
-            _ = self.memory_transfer(self.entities_memory.copy(deep=True))
+            _ = self.memory_transfer(self.subjects_memory.copy(deep=True), date)
 
             self.chatbot_memory.clear()
             self.llm_cache.clear()
 
         return
 
-    async def memory_transfer(self, entity_memory: ConversationEntityMemory) -> None:
+    async def memory_transfer(self, subjects_memory: ConversationEntityMemory, date: str) -> None:
         """
         1. Unpack entity memory to single documents
         2. For each document in entity memory:
@@ -123,6 +129,38 @@ class Chatbot(Client):
         - use UUID for document IDs and store them as metadata under "uuid" key
         - add "last_updated" metadata key with current date
         """
+        documents = []
+        subjects = {} #how to access sybjects from ConversationEntityMemory???
+        facts = []
+        for subject in subjects:
+            #split subject infromation into facts sentence by sentence (split on ".")
+            pass
+        for i, fact in enumerate(facts):
+            memory_key = input_to_memory_key().invoke({"user_input": fact}).get("output", "")
+
+            result = self.doc_store.similarity_search_with_score(
+                query=fact,
+                k=1,
+            )
+
+            # TODO: add facts synthesis
+
+            documents.append(
+                {
+                    "content": fact,
+                    "metadata": {
+                        "key": memory_key,
+                        "last_updated": date,
+                        "uuid": str(uuid4()),
+                    }
+                }
+            )
+
+        self.doc_store.add_texts(
+            texts=[document["content"] for document in documents],
+            metadatas=[document["metadata"] for document in documents],
+            ids=[document["metadata"]["uuid"] for document in documents]
+        )
         return
 
     def get_memory_categories(self, message: Message, date: str) -> MemoryCategoryList:
@@ -164,9 +202,9 @@ class Chatbot(Client):
 
         _ = self.create_message_channel(message)
 
-        await self.handle_memory()
-
         date = datetime.now().strftime("%d/%m/%Y") + " (DD/MM/YYYY)"
+
+        await self.handle_memory(date)
 
         memory_categories = self.get_memory_categories(message, date)
 

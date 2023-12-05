@@ -29,7 +29,7 @@ def input_to_memory_categories() -> LLMChain:
         ]
     )
     return LLMChain(
-        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=256), prompt=prompt
+        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=256), prompt=prompt, output_key="output"
     )
 
 def input_to_memory_key() -> LLMChain:
@@ -43,6 +43,6 @@ def input_to_memory_key() -> LLMChain:
         ]
     )
     return LLMChain(
-        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=15), prompt=prompt
+        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=15), prompt=prompt,output_key="output"
     )
     
