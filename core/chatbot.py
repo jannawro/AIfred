@@ -103,12 +103,26 @@ class Chatbot(Client):
         # flush conversation memory if last message is older than conversation TTL
         if since_last_message >= timedelta(minutes=self.conversation_ttl):
             # TODO: handle transitioning old conversation memory into long-term memory. Should be async.
+            _ = self.memory_transfer(self.entities_memory.copy(deep=True))
 
-            self.recent_messages_memory.clear()
-            self.conversation_summary_memory.clear()
-            self.entities_memory.clear()
+            self.chatbot_memory.clear()
             self.llm_cache.clear()
 
+        return
+
+    async def memory_transfer(self, entity_memory: ConversationEntityMemory) -> None:
+        """
+        1. Unpack entity memory to single documents
+        2. For each document in entity memory:
+            a. tag it with a memory key
+            b. search for maximally similar documents in vector store
+                i. if you find a very similar memory synthesize them and update document
+                ii. if not just upload the document with corresponding key as metadata
+
+        Additional notes:
+        - use UUID for document IDs and store them as metadata under "uuid" key
+        - add "last_updated" metadata key with current date
+        """
         return
 
     def get_memory_categories(self, message: Message, date: str) -> MemoryCategoryList:
