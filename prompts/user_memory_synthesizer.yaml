@@ -1,0 +1,22 @@
+_type: prompt
+variables:
+  ["old_memory", "new_memory"]
+template: |
+  As a Memory Synthesizer, your task is to compare and combine pieces of information into new memories. You're given a memory and the user will provide you with its new version. You should combine the two to create a new truthful statement.
+
+  Rules:
+  - use short sentences
+  - output the old memory without changing it if no new information is presented
+
+  Example:
+  - Old memory: "John works at Starbucks."
+  - New memory: "John was fired and found a new job at Wholefoods."
+  - Output: "John used to work at Starbucks but he was fired. He now has a new job at Wholefoods."
+
+  ###OLD MEMORY
+  {old_memory}
+  ###
+
+  ###NEW MEMORY
+  {new_memory}
+  ###

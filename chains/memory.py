@@ -29,8 +29,11 @@ def input_to_memory_categories() -> LLMChain:
         ]
     )
     return LLMChain(
-        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=256), prompt=prompt, output_key="output"
+        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=256),
+        prompt=prompt,
+        output_key="output",
     )
+
 
 def input_to_memory_key() -> LLMChain:
     prompt = ChatPromptTemplate.from_messages(
@@ -43,6 +46,23 @@ def input_to_memory_key() -> LLMChain:
         ]
     )
     return LLMChain(
-        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=15), prompt=prompt,output_key="output"
+        llm=ChatOpenAI(model="gpt-4", temperature=0.05, max_tokens=15),
+        prompt=prompt,
+        output_key="output",
     )
-    
+
+
+def memory_synthesizer() -> LLMChain:
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            HumanMessagePromptTemplate.from_template_file(
+                template_file="./prompts/user_memory_synthesizer.yaml",
+                input_variables=["old_memory", "new_memory"],
+            )
+        ]
+    )
+    return LLMChain(
+        llm=ChatOpenAI(model="gpt-3.5-turbo", temperature=0, max_tokens=256),
+        prompt=prompt,
+        output_key="output",
+    )

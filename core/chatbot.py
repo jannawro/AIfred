@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 from discord import Client, DMChannel, Intents, Message
 from typing import Any, List
@@ -15,10 +16,15 @@ from langchain.memory import (
 from langchain.vectorstores.qdrant import Qdrant
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from langchain_core.prompts.chat import BasePromptTemplate, PromptTemplate
+from langchain_core.prompts.chat import PromptTemplate
 from qdrant_client import QdrantClient
 from chains.general import general_chain
-from chains.memory import MemoryCategoryList, input_to_memory_categories, input_to_memory_key
+from chains.memory import (
+    MemoryCategoryList,
+    input_to_memory_categories,
+    input_to_memory_key,
+    memory_synthesizer,
+)
 
 
 # TODO: add logging
@@ -27,6 +33,7 @@ class Chatbot(Client):
         self,
         intents: Intents,
         qdrant_url: str,
+        logger: logging.Logger,
         human_prefix="Janek",
         ai_prefix="Alfred",
         conversation_ttl=20,
@@ -34,9 +41,12 @@ class Chatbot(Client):
     ) -> None:
         super().__init__(intents=intents, **options)
 
+        self.logger = logger
+
         self.message_channel = None
         self.last_chatbot_message = None
 
+        self.logger.debug("Setting ")
         self.human_prefix = human_prefix
 
         # init llm cache
@@ -48,6 +58,7 @@ class Chatbot(Client):
 
         # chatbot document store
         client = QdrantClient(url=qdrant_url)
+        # TODO: embeddings cache
         self.doc_store = Qdrant(
             client=client, collection_name="documents", embeddings=OpenAIEmbeddings()
         )
@@ -77,8 +88,8 @@ class Chatbot(Client):
             chat_history_key="subjects",
             entity_summarization_prompt=PromptTemplate.from_file(
                 template_file="./prompts/modified_entity_summarization.py",
-                input_variables=["entity", "summary", "history", "input"]
-            )
+                input_variables=["entity", "summary", "history", "input"],
+            ),
         )
 
         self.chatbot_memory = CombinedMemory(
@@ -108,7 +119,6 @@ class Chatbot(Client):
 
         # flush conversation memory if last message is older than conversation TTL
         if since_last_message >= timedelta(minutes=self.conversation_ttl):
-            # TODO: handle transitioning old conversation memory into long-term memory. Should be async.
             _ = self.memory_transfer(self.subjects_memory.copy(deep=True), date)
 
             self.chatbot_memory.clear()
@@ -116,50 +126,65 @@ class Chatbot(Client):
 
         return
 
-    async def memory_transfer(self, subjects_memory: ConversationEntityMemory, date: str) -> None:
-        """
-        1. Unpack entity memory to single documents
-        2. For each document in entity memory:
-            a. tag it with a memory key
-            b. search for maximally similar documents in vector store
-                i. if you find a very similar memory synthesize them and update document
-                ii. if not just upload the document with corresponding key as metadata
-
-        Additional notes:
-        - use UUID for document IDs and store them as metadata under "uuid" key
-        - add "last_updated" metadata key with current date
-        """
+    async def memory_transfer(
+        self, subjects_memory: ConversationEntityMemory, date: str
+    ) -> None:
         documents = []
-        subjects = {} #how to access sybjects from ConversationEntityMemory???
+        subjects = subjects_memory.entity_store.dict()
         facts = []
-        for subject in subjects:
-            #split subject infromation into facts sentence by sentence (split on ".")
-            pass
-        for i, fact in enumerate(facts):
-            memory_key = input_to_memory_key().invoke({"user_input": fact}).get("output", "")
-
+        for _, v in subjects:
+            facts.extend(v.split("."))
+        for fact in facts:
             result = self.doc_store.similarity_search_with_score(
                 query=fact,
                 k=1,
             )
 
-            # TODO: add facts synthesis
+            score = result[0][1]
+            if score < 0.9:
+                memory_key = (
+                    input_to_memory_key().invoke({"user_input": fact}).get("output")
+                )
 
-            documents.append(
-                {
-                    "content": fact,
-                    "metadata": {
-                        "key": memory_key,
-                        "last_updated": date,
-                        "uuid": str(uuid4()),
+                documents.append(
+                    {
+                        "content": fact,
+                        "metadata": {
+                            "key": memory_key,
+                            "last_updated": date,
+                            "uuid": str(uuid4()),
+                        },
                     }
-                }
-            )
+                )
+            else:
+                matched_document = result[0][0]
+
+                synthesized_memory = (
+                    memory_synthesizer()
+                    .invoke(
+                        {
+                            "old_memory": matched_document.page_content,
+                            "new_memory": fact,
+                        }
+                    )
+                    .get("output")
+                )
+
+                documents.append(
+                    {
+                        "content": synthesized_memory,
+                        "metadata": {
+                            "key": matched_document.metadata["key"],
+                            "last_updated": date,
+                            "uuid": matched_document.metadata["uuid"],
+                        },
+                    }
+                )
 
         self.doc_store.add_texts(
             texts=[document["content"] for document in documents],
             metadatas=[document["metadata"] for document in documents],
-            ids=[document["metadata"]["uuid"] for document in documents]
+            ids=[document["metadata"]["uuid"] for document in documents],
         )
         return
 

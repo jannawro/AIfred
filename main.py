@@ -1,3 +1,4 @@
+import logging
 from os import getenv
 from logging import getLevelName
 
@@ -13,7 +14,8 @@ def main():
 
     chatbot = Chatbot(
         intents=default_intents(),
-        qdrant_url=getenv("QDRANT_URL", "localhost")
+        qdrant_url=getenv("QDRANT_URL", "localhost"),
+        logger=logging.getLogger("discord")
     )
 
     chatbot.run(

@@ -22,6 +22,8 @@ document structure(should be a json file):
     "key": "..." // a memory key from memory schema
 }
 """
+
+
 def main():
     documents = []
 
@@ -40,15 +42,16 @@ def main():
                         "key": data["key"],
                         "last_updated": date,
                         "uuid": str(uuid4()),
-                    }
+                    },
                 }
             )
 
     doc_store.add_texts(
         texts=[document["content"] for document in documents],
         metadatas=[document["metadata"] for document in documents],
-        ids=[document["metadata"]["uuid"] for document in documents]
+        ids=[document["metadata"]["uuid"] for document in documents],
     )
+
 
 if __name__ == "__main__":
     main()
