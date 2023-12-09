@@ -920,6 +920,16 @@ lint = ["flake8 (==6.0.0)", "flake8-bugbear (==23.7.10)", "mypy (==1.4.1)", "pre
 tests = ["pytest", "pytz", "simplejson"]
 
 [[package]]
+name = "msgsplitter"
+version = "1.0"
+description = "Split messages (strings) to fit an arbitrary character limit"
+optional = false
+python-versions = "*"
+files = [
+    {file = "msgsplitter-1.0-py3-none-any.whl", hash = "sha256:c4a959f7009d96f2f38679e991ad67ac48e4fd98ed36b351b7de5a2f00725e74"},
+]
+
+[[package]]
 name = "multidict"
 version = "6.0.4"
 description = "multidict implementation"
@@ -1871,4 +1881,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "de3f5bbf928effcfc5d500de720b36e78753b191e3c8896eb914c7bef3c72dcc"
+content-hash = "6de56591d5cba027015ed2c48628fa9f0f9651c9080daf323a7f36d7260f94b3"

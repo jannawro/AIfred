@@ -17,6 +17,7 @@ from langchain.vectorstores.qdrant import Qdrant
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain_core.prompts.chat import PromptTemplate
+from msgsplitter.split import FormatterBase
 from qdrant_client import QdrantClient
 from chains.general import general_chain
 from chains.memory import (
@@ -25,6 +26,10 @@ from chains.memory import (
     input_to_memory_key,
     memory_synthesizer,
 )
+from msgsplitter import split
+
+DISCORD_MESSAGE_CHARACTER_LIMIT = 2000
+MEMORY_SIMILARITY_SYNTHESIS_THRESHOLD = 0.9
 
 
 # TODO: add logging
@@ -37,7 +42,7 @@ class Chatbot(Client):
         human_prefix="Janek",
         ai_prefix="Alfred",
         conversation_ttl=20,
-        **options: Any
+        **options: Any,
     ) -> None:
         super().__init__(intents=intents, **options)
 
@@ -46,7 +51,7 @@ class Chatbot(Client):
         self.message_channel = None
         self.last_chatbot_message = None
 
-        self.logger.debug("Setting ")
+        self.logger.debug(f"Setting human prefix to '{human_prefix}'")
         self.human_prefix = human_prefix
 
         # init llm cache
@@ -54,6 +59,7 @@ class Chatbot(Client):
         set_llm_cache(self.llm_cache)
 
         # conversation ttl
+        self.logger.debug(f"Setting conversation ttl to '{conversation_ttl}'")
         self.conversation_ttl = conversation_ttl
 
         # chatbot document store
@@ -106,6 +112,7 @@ class Chatbot(Client):
     async def create_message_channel(self, message: Message) -> None:
         """create a direct message channel if one doesn't exist yet"""
         if isinstance(message.channel, DMChannel) and self.message_channel == None:
+            self.logger.debug(f"Creating direct message channel with {message.author}")
             self.message_channel = await message.author.create_dm()
         return
 
@@ -119,8 +126,10 @@ class Chatbot(Client):
 
         # flush conversation memory if last message is older than conversation TTL
         if since_last_message >= timedelta(minutes=self.conversation_ttl):
+            self.logger.info("It is past conversation_ttl, initializing transfer to long-term memory...")
             _ = self.memory_transfer(self.subjects_memory.copy(deep=True), date)
 
+            self.logger.info("Clearing short-term memory and cache")
             self.chatbot_memory.clear()
             self.llm_cache.clear()
 
@@ -132,8 +141,10 @@ class Chatbot(Client):
         documents = []
         subjects = subjects_memory.entity_store.dict()
         facts = []
+
         for _, v in subjects:
-            facts.extend(v.split("."))
+            facts.extend([x.strip() for x in v.split(".")])
+
         for fact in facts:
             result = self.doc_store.similarity_search_with_score(
                 query=fact,
@@ -141,7 +152,7 @@ class Chatbot(Client):
             )
 
             score = result[0][1]
-            if score < 0.9:
+            if score < MEMORY_SIMILARITY_SYNTHESIS_THRESHOLD:
                 memory_key = (
                     input_to_memory_key().invoke({"user_input": fact}).get("output")
                 )
@@ -181,10 +192,12 @@ class Chatbot(Client):
                     }
                 )
 
+        self.logger.info(f"Persisting {len(documents)} documents to the vector store...")
         self.doc_store.add_texts(
             texts=[document["content"] for document in documents],
             metadatas=[document["metadata"] for document in documents],
             ids=[document["metadata"]["uuid"] for document in documents],
+            batch_size=len(documents)
         )
         return
 
@@ -237,6 +250,13 @@ class Chatbot(Client):
 
         response = self.get_ai_response(message, date, relevant_documents)
 
-        await message.reply(content=response, mention_author=True)
+        chunks = split(
+            response,
+            length_limit=DISCORD_MESSAGE_CHARACTER_LIMIT,
+            formatter_cls=FormatterBase,
+        )
+
+        for chunk in chunks:
+            await message.reply(content=chunk, mention_author=True)
 
         return

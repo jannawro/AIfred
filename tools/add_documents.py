@@ -32,7 +32,7 @@ def main():
         client=client, collection_name="documents", embeddings=OpenAIEmbeddings()
     )
     date = datetime.now().strftime("%d/%m/%Y") + " (DD/MM/YYYY)"
-    for arg in sys.argv:
+    for arg in sys.argv[1:]:
         with open(arg) as json_data:
             data = json.load(json_data)
             documents.append(
