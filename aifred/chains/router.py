@@ -1,18 +1,20 @@
 from langchain.chat_models.openai import ChatOpenAI
-from langchain.chains import LLMChain
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
+from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnableLambda
+from langchain_core.runnables import RunnablePassthrough
 from chains.action import fake_action_chain
 from chains.query import fake_query_chain
 from chains.general import general_chain
 
 
-def categorizer_chain() -> LLMChain:
-    prompt = ChatPromptTemplate.from_messages(
+categorizer_chain = (
+    {"user_input": RunnablePassthrough()}
+    | ChatPromptTemplate.from_messages(
         [
             SystemMessagePromptTemplate.from_template_file(
                 template_file="./sys_query_action_categorizer.yaml", input_variables=[]
@@ -20,14 +22,13 @@ def categorizer_chain() -> LLMChain:
             HumanMessagePromptTemplate.from_template("{user_input}"),
         ]
     )
-    return LLMChain(
-        llm=ChatOpenAI(
-            model="gpt-3.5-turbo",
-            temperature=0.0,
-            max_tokens=1,
-        ),
-        prompt=prompt,
+    | ChatOpenAI(
+        model="gpt-3.5-turbo",
+        temperature=0.0,
+        max_tokens=1,
     )
+    | StrOutputParser()
+)
 
 
 def category_router(x):
@@ -36,10 +37,17 @@ def category_router(x):
     elif "query" in x["category"].lower():
         return fake_query_chain
     else:
-        return general_chain
+        return general_chain.with_config(configurable={"memory": x["memory"]})
 
 
-prompt_router_chain = {
-    "category": categorizer_chain(),
-    "user_input": lambda x: x["user_input"],
-} | RunnableLambda(category_router)
+router_chain = (
+    {
+        "user_input": RunnablePassthrough(),
+        "date": RunnablePassthrough(),
+        "memory": RunnablePassthrough(),
+        "long_term_memory": RunnablePassthrough(),
+        "category": categorizer_chain,
+    }
+    | RunnableLambda(category_router)
+    | StrOutputParser()
+)

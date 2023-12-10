@@ -21,10 +21,10 @@ from msgsplitter.split import FormatterBase
 from qdrant_client import QdrantClient
 from chains.general import general_chain
 from chains.memory import (
-    MemoryCategoryList,
-    input_to_memory_categories,
+    MemoryCategories,
     input_to_memory_key,
     memory_synthesizer,
+    input_to_memory_key_list,
 )
 from msgsplitter import split
 
@@ -32,7 +32,6 @@ DISCORD_MESSAGE_CHARACTER_LIMIT = 2000
 MEMORY_SIMILARITY_SYNTHESIS_THRESHOLD = 0.9
 
 
-# TODO: add logging
 class Chatbot(Client):
     def __init__(
         self,
@@ -107,7 +106,9 @@ class Chatbot(Client):
         )
 
         # conversation chain
-        self.conversation_chain = general_chain(memory=self.chatbot_memory)
+        self.conversation_chain = general_chain.with_config(
+            configurable={"memory": self.chatbot_memory}
+        )
 
     async def create_message_channel(self, message: Message) -> None:
         """create a direct message channel if one doesn't exist yet"""
@@ -123,10 +124,15 @@ class Chatbot(Client):
             since_last_message = (
                 datetime.now(timezone.utc) - self.last_chatbot_message.created_at
             )
+            self.logger.info(
+                f"It's been {since_last_message} minutes since last message."
+            )
 
         # flush conversation memory if last message is older than conversation TTL
         if since_last_message >= timedelta(minutes=self.conversation_ttl):
-            self.logger.info("It is past conversation_ttl, initializing transfer to long-term memory...")
+            self.logger.info(
+                "It is past conversation_ttl, initializing transfer to long-term memory..."
+            )
             _ = self.memory_transfer(self.subjects_memory.copy(deep=True), date)
 
             self.logger.info("Clearing short-term memory and cache")
@@ -145,6 +151,8 @@ class Chatbot(Client):
         for _, v in subjects:
             facts.extend([x.strip() for x in v.split(".")])
 
+        self.logger.info(f"Found {len(facts)} facts about {len(subjects)} subjects.")
+
         for fact in facts:
             result = self.doc_store.similarity_search_with_score(
                 query=fact,
@@ -153,9 +161,7 @@ class Chatbot(Client):
 
             score = result[0][1]
             if score < MEMORY_SIMILARITY_SYNTHESIS_THRESHOLD:
-                memory_key = (
-                    input_to_memory_key().invoke({"user_input": fact}).get("output")
-                )
+                memory_key = input_to_memory_key.invoke({"user_input": fact}).key
 
                 documents.append(
                     {
@@ -170,15 +176,11 @@ class Chatbot(Client):
             else:
                 matched_document = result[0][0]
 
-                synthesized_memory = (
-                    memory_synthesizer()
-                    .invoke(
-                        {
-                            "old_memory": matched_document.page_content,
-                            "new_memory": fact,
-                        }
-                    )
-                    .get("output")
+                synthesized_memory = memory_synthesizer.invoke(
+                    {
+                        "old_memory": matched_document.page_content,
+                        "new_memory": fact,
+                    }
                 )
 
                 documents.append(
@@ -192,26 +194,30 @@ class Chatbot(Client):
                     }
                 )
 
-        self.logger.info(f"Persisting {len(documents)} documents to the vector store...")
+        self.logger.info(
+            f"Persisting {len(documents)} documents to the vector store..."
+        )
         self.doc_store.add_texts(
             texts=[document["content"] for document in documents],
             metadatas=[document["metadata"] for document in documents],
             ids=[document["metadata"]["uuid"] for document in documents],
-            batch_size=len(documents)
+            batch_size=len(documents),
         )
         return
 
-    def get_memory_categories(self, message: Message, date: str) -> MemoryCategoryList:
-        response = (
-            input_to_memory_categories()
-            .invoke({"user_input": message.content, "date": date})
-            .get("output", "")
+    def get_memory_categories(self, message: Message, date: str) -> MemoryCategories:
+        response = input_to_memory_key_list.invoke(
+            {"user_input": message.content, "date": date}
         )
 
-        return MemoryCategoryList.parse_raw(response)
+        self.logger.info(
+            f"Found memory category '{response}' for input {message.content}"
+        )
+
+        return response
 
     def mmr_find_documents(
-        self, message: Message, memory_categories: MemoryCategoryList
+        self, message: Message, memory_categories: MemoryCategories
     ) -> List[Document]:
         return self.doc_store.max_marginal_relevance_search(
             query=message.content,
@@ -230,7 +236,7 @@ class Chatbot(Client):
                     [document.page_content for document in relevant_documents]
                 ),
             }
-        ).get("output", "received empty response")
+        )
 
     async def on_message(self, message: Message) -> None:
         # save bot message, but don't respond to bot-generated messages
