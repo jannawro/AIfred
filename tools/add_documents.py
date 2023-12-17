@@ -3,9 +3,9 @@ import os
 import sys
 import json
 from uuid import uuid4
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 
-from langchain.vectorstores.qdrant import Qdrant
+from langchain_community.vectorstores.qdrant import Qdrant
 from qdrant_client import QdrantClient
 
 

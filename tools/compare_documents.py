@@ -1,6 +1,6 @@
 import sys
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain_core.agents import json
+from langchain_community.embeddings.openai import OpenAIEmbeddings
+import json
 import numpy as np
 from numpy.linalg import norm
 from typing import List

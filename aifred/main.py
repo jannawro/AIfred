@@ -2,7 +2,7 @@ import logging
 from os import getenv
 from logging import getLevelName
 
-from langchain.globals import set_debug, set_verbose
+from langchain_core.globals import set_debug, set_verbose
 
 from core.intents import default_intents
 from core.chatbot import Chatbot

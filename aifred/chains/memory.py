@@ -19,7 +19,7 @@ class MemoryCategories(BaseModel):
     categories: List[MemoryCategory]
 
 
-input_to_memory_key_list = (
+input_to_memory_category_list = (
     {
         "user_input": RunnablePassthrough(),
         "date": RunnablePassthrough(),
@@ -38,7 +38,7 @@ input_to_memory_key_list = (
     | PydanticOutputParser(pydantic_object=MemoryCategories)
 )
 
-input_to_memory_key = (
+input_to_memory_category = (
     {
         "user_input": RunnablePassthrough(),
         "date": RunnablePassthrough(),

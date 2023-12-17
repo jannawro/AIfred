@@ -3,28 +3,28 @@ from uuid import uuid4
 from discord import Client, DMChannel, Intents, Message
 from typing import Any, List
 from pathlib import Path
-from langchain.cache import InMemoryCache
+from langchain_community.cache import InMemoryCache
 from datetime import timedelta, datetime, timezone
-from langchain.chat_models.openai import ChatOpenAI
-from langchain.globals import set_llm_cache
+from langchain_community.chat_models.openai import ChatOpenAI
+from langchain_core.globals import set_llm_cache
 from langchain.memory import (
     CombinedMemory,
     ConversationBufferWindowMemory,
     ConversationEntityMemory,
     ConversationSummaryMemory,
 )
-from langchain.vectorstores.qdrant import Qdrant
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.vectorstores.qdrant import Qdrant
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from langchain_core.prompts.chat import PromptTemplate
+from langchain_core.prompts.prompt import PromptTemplate
 from msgsplitter.split import FormatterBase
 from qdrant_client import QdrantClient
 from chains.general import general_chain
 from chains.memory import (
     MemoryCategories,
-    input_to_memory_key,
+    input_to_memory_category,
     memory_synthesizer,
-    input_to_memory_key_list,
+    input_to_memory_category_list,
 )
 from msgsplitter import split
 
@@ -161,7 +161,7 @@ class Chatbot(Client):
 
             score = result[0][1]
             if score < MEMORY_SIMILARITY_SYNTHESIS_THRESHOLD:
-                memory_key = input_to_memory_key.invoke({"user_input": fact}).key
+                memory_key = input_to_memory_category.invoke({"user_input": fact}).key
 
                 documents.append(
                     {
@@ -206,7 +206,7 @@ class Chatbot(Client):
         return
 
     def get_memory_categories(self, message: Message, date: str) -> MemoryCategories:
-        response = input_to_memory_key_list.invoke(
+        response = input_to_memory_category_list.invoke(
             {"user_input": message.content, "date": date}
         )
 

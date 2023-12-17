@@ -1,6 +1,6 @@
-from langchain.chat_models import FakeListChatModel
-from langchain.prompts import PromptTemplate
-from langchain.schema import StrOutputParser
+from langchain_core.prompts.prompt import PromptTemplate
+from langchain_community.chat_models.fake import FakeListChatModel
+from langchain_core.output_parsers import StrOutputParser
 
 fake_query_chain = (
     PromptTemplate.from_template("Stub")

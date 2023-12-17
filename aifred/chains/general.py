@@ -1,12 +1,12 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts.chat import (
+from langchain_community.chat_models.openai import ChatOpenAI
+from langchain_core.prompts.chat import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     MessagesPlaceholder,
     SystemMessagePromptTemplate,
 )
-from langchain.schema import StrOutputParser
-from langchain.schema.runnable import ConfigurableField, RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import ConfigurableField, RunnablePassthrough
 
 
 general_chain = (

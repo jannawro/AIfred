@@ -1,12 +1,11 @@
-from langchain.chat_models.openai import ChatOpenAI
-from langchain.prompts.chat import (
+from langchain_community.chat_models.openai import ChatOpenAI
+from langchain_core.prompts.chat import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
-from langchain.schema import StrOutputParser
-from langchain.schema.runnable import RunnableLambda
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from chains.action import fake_action_chain
 from chains.query import fake_query_chain
 from chains.general import general_chain
@@ -17,7 +16,7 @@ categorizer_chain = (
     | ChatPromptTemplate.from_messages(
         [
             SystemMessagePromptTemplate.from_template_file(
-                template_file="./sys_query_action_categorizer.yaml", input_variables=[]
+                template_file="./sys_input_categorizer.yaml", input_variables=[]
             ),
             HumanMessagePromptTemplate.from_template("{user_input}"),
         ]
